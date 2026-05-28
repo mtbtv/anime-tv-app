@@ -7,8 +7,8 @@ export default function AnimeRow({ title, items, rowIndex, activeRow, activeCard
   useEffect(() => {
     if (activeRow === rowIndex && scrollRef.current) {
       scrollRef.current.scrollTo({
-        left: activeCard * 260,
-        behavior: 'smooth'
+        left: activeCard * 320,
+        behavior: 'instant'
       });
     }
   }, [activeCard, activeRow, rowIndex]);
@@ -16,7 +16,11 @@ export default function AnimeRow({ title, items, rowIndex, activeRow, activeCard
   return (
     <section className='mb-10'>
       <h2 className='text-2xl font-bold px-2 mb-4'>{title}</h2>
-      <div ref={scrollRef} className='flex gap-5 overflow-x-hidden scroll-smooth px-4 py-4'>
+
+      <div
+        ref={scrollRef}
+        className='flex gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide px-4 py-4'
+      >
         {items.map((anime, index) => (
           <AnimeCard
             key={anime.id}
