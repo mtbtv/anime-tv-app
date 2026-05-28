@@ -5,10 +5,11 @@ import { fetchAnimeByCategory, sections } from '../api/anilist';
 
 export default function Home() {
   const [data, setData] = useState({});
-  const [activeRow, setActiveRow] = useState(0);
+  const [activeSection, setActiveSection] = useState(0);
   const [activeCard, setActiveCard] = useState(0);
 
-  const rowRefs = useRef([]);
+  const sectionRefs = useRef([]);
+  const savedCards = useRef({});
 
   useEffect(() => {
     async function loadAnime() {
@@ -25,47 +26,58 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const activeElement = rowRefs.current[activeRow];
+    const activeElement = sectionRefs.current[activeSection];
 
     if (!activeElement) return;
 
     const rect = activeElement.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
 
-    const isAbove = rect.top < 120;
-    const isBelow = rect.bottom > viewportHeight - 120;
+    const offset = rect.top + window.scrollY - viewportHeight / 2 + rect.height / 2;
 
-    if (isAbove || isBelow) {
-      const offset = rect.top + window.scrollY - viewportHeight / 2 + rect.height / 2;
-
-      window.scrollTo({
-        top: offset,
-        behavior: 'smooth',
-      });
-    }
-  }, [activeRow]);
+    window.scrollTo({
+      top: Math.max(offset, 0),
+      behavior: 'smooth',
+    });
+  }, [activeSection]);
 
   useEffect(() => {
     function handleRemote(event) {
-      const currentItems = data[sections[activeRow]?.key] || [];
+      const currentItems = data[sections[activeSection]?.key] || [];
 
       switch (event.key) {
         case 'ArrowRight':
-          setActiveCard((prev) => Math.min(prev + 1, currentItems.length - 1));
+          setActiveCard((prev) => {
+            const next = Math.min(prev + 1, currentItems.length - 1);
+            savedCards.current[activeSection] = next;
+            return next;
+          });
           break;
 
         case 'ArrowLeft':
-          setActiveCard((prev) => Math.max(prev - 1, 0));
+          setActiveCard((prev) => {
+            const next = Math.max(prev - 1, 0);
+            savedCards.current[activeSection] = next;
+            return next;
+          });
           break;
 
-        case 'ArrowDown':
-          setActiveRow((prev) => Math.min(prev + 1, sections.length - 1));
-          setActiveCard(0);
+        case 'ArrowDown': {
+          const nextSection = Math.min(activeSection + 1, sections.length - 1);
+          setActiveSection(nextSection);
+          setActiveCard(savedCards.current[nextSection] || 0);
           break;
+        }
 
-        case 'ArrowUp':
-          setActiveRow((prev) => Math.max(prev - 1, 0));
-          setActiveCard(0);
+        case 'ArrowUp': {
+          const nextSection = Math.max(activeSection - 1, 0);
+          setActiveSection(nextSection);
+          setActiveCard(savedCards.current[nextSection] || 0);
+          break;
+        }
+
+        case 'Enter':
+          console.log('Selected section', activeSection, 'card', activeCard);
           break;
 
         default:
@@ -78,26 +90,34 @@ export default function Home() {
     return () => {
       window.removeEventListener('keydown', handleRemote);
     };
-  }, [activeRow, activeCard, data]);
+  }, [activeSection, activeCard, data]);
 
   const heroAnime = data[sections[0]?.key]?.[activeCard];
 
   return (
     <div className='min-h-screen bg-black text-white overflow-y-auto'>
-      <HeroBanner anime={heroAnime} />
+      <div
+        className={`transition-all duration-300 ${activeSection === 0 ? 'ring-4 ring-cyan-400' : ''}`}
+      >
+        <HeroBanner anime={heroAnime} />
+      </div>
 
       <div className='px-6 pb-32 -mt-12 relative z-20'>
         {sections.map((section, index) => (
           <div
             key={section.key}
-            ref={(el) => (rowRefs.current[index] = el)}
-            className='scroll-mt-32'
+            ref={(el) => (sectionRefs.current[index] = el)}
+            className={`rounded-3xl transition-all duration-300 mb-6 ${
+              activeSection === index
+                ? 'scale-[1.01] bg-white/5 ring-2 ring-cyan-400'
+                : 'opacity-90'
+            }`}
           >
             <AnimeRow
               title={section.title}
               items={data[section.key] || []}
               rowIndex={index}
-              activeRow={activeRow}
+              activeRow={activeSection}
               activeCard={activeCard}
             />
           </div>
