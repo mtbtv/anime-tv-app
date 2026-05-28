@@ -25,10 +25,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (rowRefs.current[activeRow]) {
-      rowRefs.current[activeRow].scrollIntoView({
+    const activeElement = rowRefs.current[activeRow];
+
+    if (!activeElement) return;
+
+    const rect = activeElement.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    const isAbove = rect.top < 120;
+    const isBelow = rect.bottom > viewportHeight - 120;
+
+    if (isAbove || isBelow) {
+      const offset = rect.top + window.scrollY - viewportHeight / 2 + rect.height / 2;
+
+      window.scrollTo({
+        top: offset,
         behavior: 'smooth',
-        block: 'center',
       });
     }
   }, [activeRow]);
@@ -74,11 +86,12 @@ export default function Home() {
     <div className='min-h-screen bg-black text-white overflow-y-auto'>
       <HeroBanner anime={heroAnime} />
 
-      <div className='px-6 pb-20 -mt-12 relative z-20'>
+      <div className='px-6 pb-32 -mt-12 relative z-20'>
         {sections.map((section, index) => (
           <div
             key={section.key}
             ref={(el) => (rowRefs.current[index] = el)}
+            className='scroll-mt-32'
           >
             <AnimeRow
               title={section.title}
